@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YDSE Simulator</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101827;color:#fff;font-family:Arial,sans-serif}
+header{background:#172b46;text-align:center;padding:18px;border-bottom:2px solid #42d5ff}
+header h1{color:#42d5ff;margin:0}
+header p{color:#b9c9dc;margin:4px 0 0}
+.container{max-width:1100px;margin:auto;padding:16px}
+.card{background:#1b2a40;padding:18px;border-radius:12px;margin-bottom:18px;border:1px solid #344760}
+h2{color:#42d5ff;font-size:20px;margin-top:0}
+label{display:block;margin:14px 0 6px;color:#dce8f5}
+input,select{width:100%;padding:10px;border-radius:6px;border:none;background:#eaf2fa;color:#172b46}
+input[type=range]{padding:0;accent-color:#42d5ff}
+.value{color:#42d5ff;font-weight:bold}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 24px}
+button{background:#08a9d6;color:#fff;border:none;padding:11px 16px;border-radius:7px;cursor:pointer;margin:5px 3px;font-weight:bold}
+button:hover{background:#087da7}
+.canvasbox{background:#07111e;border-radius:10px;padding:10px;overflow:hidden}
+canvas{width:100%;display:block}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.result{background:#10243a;padding:14px;border-radius:8px;text-align:center;font-size:14px}
+.result strong{display:block;color:#42d5ff;font-size:18px;margin-top:8px}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:6px;vertical-align:middle;border:1px solid #fff6}
+table{width:100%;border-collapse:collapse;margin-top:15px;font-size:14px}
+th,td{border:1px solid #486079;padding:8px;text-align:center}
+th{background:#10243a;color:#42d5ff}
+.note{color:#bdcce0;line-height:1.6}
+footer{text-align:center;padding:20px;color:#94a9c1}
+</style>
+</head>
+<body>
+<header>
+<h1>YDSE SIMULATOR</h1>
+<p>Young's Double Slit Experiment · Virtual Physics Laboratory</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>1. Experiment Controls</h2>
+<div class="grid2">
+<div>
+<label>Light Source (name)</label>
+<select id="source"></select>
+
+<label>Wavelength (λ): <span class="value" id="wv"></span> nm — <span id="cname" class="value"></span> <span class="swatch" id="sw"></span></label>
+<input type="range" id="wave" min="380" max="750" step="1" value="532">
+</div>
+<div>
+<label>Slit Separation (d): <span class="value" id="dv"></span> mm</label>
+<input type="range" id="distance" min="0.1" max="1" step="0.05" value="0.5">
+</div>
+<div>
+<label>Screen Distance (D): <span class="value" id="Dv"></span> m</label>
+<input type="range" id="screen" min="0.5" max="3" step="0.1" value="1">
+</div>
+</div>
+<button onclick="resetAll()">Reset Experiment</button>
+</div>
+
+<div class="card">
+<h2>2. Experimental Setup</h2>
+<div class="canvasbox"><canvas id="setup"></canvas></div>
+<p class="note">Light of the chosen wavelength passes through two narrow slits. The wavefronts from both slits overlap on the screen and form alternate bright and dark fringes. In the diagram, the arcs are wave crests from each slit; the white dots are the points where crests of both slits meet (constructive interference) and they line up along the lines leading to the bright fringes. Changing λ, d or a changes them. The screen on the right shows the resulting fringes. The diagram is schematic.</p>
+</div>
+
+<div class="card">
+<h2>3. Interference Pattern on Screen</h2>
+<div class="canvasbox"><canvas id="pattern"></canvas></div>
+<p class="note">Fringe colour is the colour of the selected wavelength. Brightness follows I = I₀ cos²(πd sinθ/λ) · sinc²(πa sinθ/λ): double-slit interference modulated by single-slit diffraction.</p>
+<h2 style="margin-top:18px">Intensity Graph</h2>
+<div class="canvasbox"><canvas id="graph"></canvas></div>
+</div>
+
+<div class="card">
+<h2>4. Live Calculations</h2>
+<div class="results">
+<div class="result">Light Source<strong id="sname"></strong></div>
+<div class="result">Wavelength (λ)<strong id="lambda"></strong></div>
+<div class="result">Fringe Width (β = λD/d)<strong id="beta"></strong></div>
+<div class="result">Angular Fringe Width (λ/d)<strong id="theta"></strong></div>
+<div class="result">Slit Separation (d)<strong id="slit"></strong></div>
+<div class="result">Screen Distance (D)<strong id="screenD"></strong></div>
+</div>
+
+<label>Fringe order n: <span class="value" id="nv"></span></label>
+<input type="range" id="order" min="1" max="10" step="1" value="1">
+<div class="results" style="margin-top:12px">
+<div class="result">Path difference (bright) = nλ<strong id="pbright"></strong></div>
+<div class="result">n-th bright fringe: y = nβ<strong id="ybright"></strong></div>
+<div class="result">Path difference (dark) = (n−½)λ<strong id="pdark"></strong></div>
+<div class="result">n-th dark fringe: y = (n−½)β<strong id="ydark"></strong></div>
+</div>
+<p class="note">Formula: β = λD / d &nbsp;|&nbsp; Bright: d·y/D = nλ &nbsp;|&nbsp; Dark: d·y/D = (n−½)λ</p>
+</div>
+
+<div class="card">
+<h2>5. Observation Table</h2>
+<button onclick="record()">Record Reading</button>
+<button onclick="clearTable()">Clear Table</button>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>S.No.</th><th>Source</th><th>λ (nm)</th><th>d (mm)</th><th>D (m)</th><th>β (mm)</th></tr></thead>
+<tbody id="rows"></tbody>
+</table>
+</div>
+</div>
+
+<div class="card">
+<h2>6. Experiment Conclusion</h2>
+<p class="note">
+1. Fringe width is directly proportional to wavelength (red fringes are wider than blue).<br>
+2. Fringe width is directly proportional to screen distance.<br>
+3. Fringe width is inversely proportional to slit separation.<br>
+4. Bright fringes form where path difference = nλ (constructive interference).<br>
+5. Dark fringes form where path difference = (n−½)λ (destructive interference).
+</p>
+</div>
+
+</div>
+<footer>YDSE Virtual Physics Laboratory | Educational Simulator</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const wave=$("wave"), distance=$("distance"), screen=$("screen"), order=$("order");
+/* fixed settings (sliders removed) */
+const width={value:15};     // screen view width in mm
+const slitw={value:0.05};   // slit width a in mm
+
+/* ---------- Light sources (name -> wavelength) ---------- */
+const SOURCES=[
+ {name:"Violet Laser",  wl:405},
+ {name:"Blue Laser",    wl:450},
+ {name:"Green Laser",   wl:532},
+ {name:"Sodium Lamp (Yellow)", wl:589},
+ {name:"Red Laser",     wl:650},
+ {name:"Custom Light",  wl:null}
+];
+const sel=$("source");
+SOURCES.forEach((s,i)=>{
+ const o=document.createElement("option");
+ o.value=i;
+ o.textContent=s.wl?`${s.name} (${s.wl} nm)`:"Custom Light (use slider)";
+ sel.appendChild(o);
+});
+const CUSTOM=SOURCES.length-1;
+
+/* ---------- Wavelength -> RGB (visible spectrum) ---------- */
+function wl2rgb(w){
+ let r=0,g=0,b=0;
+ if(w<440){r=-(w-440)/60;b=1}
+ else if(w<490){g=(w-440)/50;b=1}
+ else if(w<510){g=1;b=-(w-510)/20}
+ else if(w<580){r=(w-510)/70;g=1}
+ else if(w<645){r=1;g=-(w-645)/65}
+ else{r=1}
+ let f=1;                                   // dimmer at the spectrum edges
+ if(w<420) f=0.3+0.7*(w-380)/40;
+ else if(w>700) f=0.3+0.7*(750-w)/50;
+ return [r,g,b].map(c=>Math.round(255*Math.pow(Math.max(0,c*f),0.8)));
+}
+function colourName(w){
+ if(w<450) return "Violet";
+ if(w<485) return "Blue";
+ if(w<500) return "Cyan";
+ if(w<565) return "Green";
+ if(w<590) return "Yellow";
+ if(w<625) return "Orange";
+ return "Red";
+}
+function currentSourceName(l){
+ const s=SOURCES.find(s=>s.wl===l);
+ return s? s.name : `Custom Light (${colourName(l)})`;
+}
+
+/* ---------- Physics ---------- */
+function getData(){
+ const l=Number(wave.value), d=Number(distance.value), D=Number(screen.value), a=Math.min(Number(slitw.value), d*0.9); // slit width must be smaller than separation
+ const beta=(l*1e-9*D)/(d*1e-3)*1000;       // mm
+ return {l,d,D,a,beta,rgb:wl2rgb(l)};
+}
+// relative intensity at screen position y (mm), exact sin(theta)
+function intensity(y,x){
+ const lam=x.l*1e-9, d=x.d*1e-3, a=x.a*1e-3, Y=y*1e-3;
+ const s=Y/Math.sqrt(x.D*x.D+Y*Y);
+ const phi=Math.PI*d*s/lam;
+ const al=Math.PI*a*s/lam;
+ const sinc=Math.abs(al)<1e-9?1:Math.sin(al)/al;
+ return Math.pow(Math.cos(phi),2)*sinc*sinc;
+}
+
+/* ---------- Canvas helper ---------- */
+function fit(c,h){
+ const dpr=window.devicePixelRatio||1, w=c.clientWidth;
+ c.width=Math.round(w*dpr); c.height=Math.round(h*dpr);
+ c.style.height=h+"px";
+ const ctx=c.getContext("2d");
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ return {ctx,W:w,H:h};
+}
+
+/* ---------- Setup drawing (animated interference of the two slits) ---------- */
+let phase=0;
+const off=document.createElement("canvas");
+function drawSetup(){
+ const {ctx,W,H}=fit($("setup"),260);
+ const x=getData(), col=`rgb(${x.rgb})`, view=Number(width.value);
+ ctx.fillStyle="#07111e"; ctx.fillRect(0,0,W,H);
+
+ const cy=H/2, plateX=W*0.30;
+ const screenX=W*0.45+(x.D/3)*W*0.45;
+ const gap=24+x.d*60;                          // visual slit separation (px)
+ const sw=Math.min(4+x.a*180, gap-8);          // visual slit width (px)
+ const s1=cy-gap/2, s2=cy+gap/2;
+ const lamv=x.l/16;                            // visual wavelength (px)
+ const k=2*Math.PI/lamv;
+
+ /* incoming plane wavefronts */
+ ctx.lineWidth=1.5; ctx.strokeStyle=col;
+ for(let xx=plateX-lamv+(phase%lamv); xx>20; xx-=lamv){
+  ctx.globalAlpha=0.45;
+  ctx.beginPath(); ctx.moveTo(xx,cy-70); ctx.lineTo(xx,cy+70); ctx.stroke();
+ }
+ ctx.globalAlpha=1;
+ ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=14;
+ ctx.beginPath(); ctx.arc(14,cy,8,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+
+ /* interference region: sum of waves from sample points across both slits */
+ const rx0=Math.floor(plateX+6), rx1=Math.floor(screenX-2);
+ const step=2, rw=Math.max(1,Math.floor((rx1-rx0)/step)), rh=Math.floor(H/step);
+ off.width=rw; off.height=rh;
+ const octx=off.getContext("2d"), img=octx.createImageData(rw,rh), dat=img.data;
+ const NP=4, pts=[];
+ [s1,s2].forEach(sy=>{ for(let i=0;i<NP;i++) pts.push(sy+(NP===1?0:(i/(NP-1)-0.5)*sw)); });
+ const ph=k*phase;
+ for(let j=0;j<rh;j++){
+  const py=j*step;
+  for(let i=0;i<rw;i++){
+   const px=rx0+i*step-plateX;
+   let v=0;
+   for(let p=0;p<pts.length;p++){
+    const dy=py-pts[p], r=Math.sqrt(px*px+dy*dy)+1;
+    v+=Math.cos(k*r-ph)*Math.sqrt(30/r);
+   }
+   v/=(pts.length/2);                           // 2 slits -> amplitude up to ~2
+   let b=0.22+0.12*v; b=b<0?0:b>1?1:b;   // subtle background shading
+   const q=(j*rw+i)*4;
+   dat[q]=x.rgb[0]*b; dat[q+1]=x.rgb[1]*b; dat[q+2]=x.rgb[2]*b; dat[q+3]=255;
+  }
+ }
+ octx.putImageData(img,0,0);
+ ctx.imageSmoothingEnabled=true;
+ ctx.drawImage(off,rx0,0,rw*step,rh*step);
+
+ /* crest circles from each slit + dots where crests of both slits meet (constructive points) */
+ const maxR=(screenX-plateX)+120, cr=[];
+ for(let r=(phase%lamv)+0.5; r<maxR; r+=lamv) cr.push(r);
+ ctx.save();
+ ctx.beginPath(); ctx.rect(plateX+6,0,screenX-plateX-6,H); ctx.clip();
+ ctx.lineWidth=1; ctx.strokeStyle=col;
+ [s1,s2].forEach(sy=>{
+  cr.forEach(r=>{
+   ctx.globalAlpha=0.45;
+   ctx.beginPath(); ctx.arc(plateX,sy,r,-Math.PI/2,Math.PI/2); ctx.stroke();
+  });
+ });
+ ctx.globalAlpha=1; ctx.fillStyle="#ffffff";
+ for(let i=0;i<cr.length;i++){
+  for(let j=0;j<cr.length;j++){
+   const r1=cr[i], r2=cr[j];
+   const a=(r1*r1-r2*r2+gap*gap)/(2*gap);       // y-offset from slit 1 along the slit line
+   const h2=r1*r1-a*a;
+   if(h2<=0) continue;
+   const px=plateX+Math.sqrt(h2), py=s1+a;
+   if(px>screenX||py<0||py>H) continue;
+   ctx.beginPath(); ctx.arc(px,py,2.2,0,Math.PI*2); ctx.fill();
+  }
+ }
+ ctx.restore();
+
+ /* slit plate with two openings of visible width */
+ ctx.fillStyle="#9aa9ba";
+ ctx.fillRect(plateX,10,6,(s1-sw/2)-10);
+ ctx.fillRect(plateX,s1+sw/2,6,(s2-sw/2)-(s1+sw/2));
+ ctx.fillRect(plateX,s2+sw/2,6,(H-10)-(s2+sw/2));
+
+ /* screen with the fringe pattern painted on it */
+ const sx=screenX, top=10, hh=H-20;
+ for(let py=0;py<hh;py++){
+  const y=((py/hh)-0.5)*view;
+  const I=Math.pow(intensity(y,x),0.6);
+  ctx.fillStyle=`rgb(${Math.round(x.rgb[0]*I)},${Math.round(x.rgb[1]*I)},${Math.round(x.rgb[2]*I)})`;
+  ctx.fillRect(sx,top+py,9,1);
+ }
+ ctx.strokeStyle="#b4c6d8"; ctx.lineWidth=1; ctx.strokeRect(sx-0.5,top-0.5,10,hh+1);
+
+ /* labels & dimension line */
+ ctx.strokeStyle="#7f93aa"; ctx.fillStyle="#cfe0f2"; ctx.font="12px Arial";
+ ctx.beginPath(); ctx.moveTo(plateX+3,H-6); ctx.lineTo(sx+3,H-6); ctx.stroke();
+ ctx.fillText(`D = ${x.D.toFixed(1)} m`,(plateX+sx)/2-28,H-10);
+ ctx.fillText(`λ = ${x.l} nm`,8,16);
+ ctx.fillText(`d = ${x.d.toFixed(2)} mm`,plateX-92,s1-sw/2-6);
+ ctx.fillText("Screen",sx-14,top+hh+0);
+}
+
+/* ---------- Pattern drawing ---------- */
+function drawPattern(){
+ const {ctx,W,H}=fit($("pattern"),260);
+ const x=getData(), view=Number(width.value);
+ const stripH=H-34;
+ ctx.fillStyle="#020810"; ctx.fillRect(0,0,W,H);
+
+ for(let px=0;px<W;px++){
+  const y=(px/W-0.5)*view;
+  const I=Math.pow(intensity(y,x),0.6);    // mild gamma for visibility
+  ctx.fillStyle=`rgb(${Math.round(x.rgb[0]*I)},${Math.round(x.rgb[1]*I)},${Math.round(x.rgb[2]*I)})`;
+  ctx.fillRect(px,0,1,stripH);
+ }
+
+ // central line + labels
+ ctx.strokeStyle="#fff"; ctx.setLineDash([4,4]);
+ ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,stripH); ctx.stroke(); ctx.setLineDash([]);
+ ctx.fillStyle="#fff"; ctx.font="12px Arial";
+ ctx.fillText("Central bright fringe (n = 0)",W/2+6,16);
+
+ // mm scale
+ ctx.fillStyle="#0b1624"; ctx.fillRect(0,stripH,W,H-stripH);
+ ctx.strokeStyle="#9fb2c8"; ctx.fillStyle="#cfe0f2";
+ const step=view>20?5:view>8?2:1;
+ for(let mm=-Math.floor(view/2/step)*step; mm<=view/2; mm+=step){
+  const px=(mm/view+0.5)*W;
+  ctx.beginPath(); ctx.moveTo(px,stripH); ctx.lineTo(px,stripH+6); ctx.stroke();
+  ctx.fillText(mm+" mm",px-12,stripH+20);
+ }
+ // mark selected order
+ const n=Number(order.value);
+ [-1,1].forEach(sg=>{
+  const yb=sg*n*x.beta;
+  if(Math.abs(yb)<view/2){
+   const px=(yb/view+0.5)*W;
+   ctx.strokeStyle="#ffd24a"; ctx.beginPath(); ctx.moveTo(px,0); ctx.lineTo(px,stripH); ctx.stroke();
+   ctx.fillStyle="#ffd24a"; ctx.fillText(`n=${sg*n}`,px+3,32);
+  }
+ });
+}
+
+/* ---------- Intensity graph ---------- */
+function drawGraph(){
+ const {ctx,W,H}=fit($("graph"),170);
+ const x=getData(), view=Number(width.value);
+ ctx.fillStyle="#020810"; ctx.fillRect(0,0,W,H);
+ const top=12,bot=H-24;
+ ctx.strokeStyle="#223348"; ctx.lineWidth=1;
+ ctx.beginPath(); ctx.moveTo(0,bot); ctx.lineTo(W,bot); ctx.moveTo(W/2,top); ctx.lineTo(W/2,bot); ctx.stroke();
+ // single-slit envelope
+ ctx.strokeStyle="#ffffff55"; ctx.setLineDash([5,4]); ctx.beginPath();
+ for(let px=0;px<=W;px++){
+  const y=(px/W-0.5)*view, lam=x.l*1e-9, Y=y*1e-3, s=Y/Math.sqrt(x.D*x.D+Y*Y), al=Math.PI*x.a*1e-3*s/lam;
+  const e=Math.abs(al)<1e-9?1:Math.pow(Math.sin(al)/al,2);
+  const py=bot-e*(bot-top);
+  px?ctx.lineTo(px,py):ctx.moveTo(px,py);
+ }
+ ctx.stroke(); ctx.setLineDash([]);
+ // total intensity
+ ctx.strokeStyle=`rgb(${x.rgb})`; ctx.lineWidth=2; ctx.beginPath();
+ for(let px=0;px<=W;px++){
+  const y=(px/W-0.5)*view, py=bot-intensity(y,x)*(bot-top);
+  px?ctx.lineTo(px,py):ctx.moveTo(px,py);
+ }
+ ctx.stroke();
+ ctx.fillStyle="#cfe0f2"; ctx.font="12px Arial";
+ ctx.fillText("Intensity vs position on screen (dashed = single-slit envelope)",8,H-6);
+}
+
+/* ---------- UI update ---------- */
+function updateText(){
+ const x=getData(), n=Number(order.value);
+ $("wv").textContent=x.l;
+ $("cname").textContent=colourName(x.l);
+ $("sw").style.background=`rgb(${x.rgb})`;
+ $("dv").textContent=x.d.toFixed(2);
+ $("Dv").textContent=x.D.toFixed(1);
+ $("nv").textContent=n;
+
+ $("sname").textContent=currentSourceName(x.l);
+ $("lambda").textContent=x.l+" nm";
+ $("beta").textContent=x.beta.toFixed(3)+" mm";
+ $("theta").textContent=(x.l*1e-9/(x.d*1e-3)*1000).toFixed(3)+" mrad";
+ $("slit").textContent=x.d.toFixed(2)+" mm";
+ $("screenD").textContent=x.D.toFixed(1)+" m";
+ $("pbright").textContent=(n*x.l)+" nm";
+ $("ybright").textContent=(n*x.beta).toFixed(3)+" mm";
+ $("pdark").textContent=((n-0.5)*x.l).toFixed(1)+" nm";
+ $("ydark").textContent=((n-0.5)*x.beta).toFixed(3)+" mm";
+}
+function update(){
+ updateText(); drawPattern(); drawGraph();
+}
+
+/* Source name changed -> set wavelength (and so colour) */
+sel.addEventListener("change",()=>{
+ const s=SOURCES[Number(sel.value)];
+ if(s.wl) wave.value=s.wl;
+ update();
+});
+/* Slider moved -> select matching named source, else Custom */
+wave.addEventListener("input",()=>{
+ const l=Number(wave.value);
+ const i=SOURCES.findIndex(s=>s.wl===l);
+ sel.value=i>=0?i:CUSTOM;
+ update();
+});
+[distance,screen,order].forEach(el=>el.addEventListener("input",update));
+
+/* ---------- Observation table ---------- */
+let readings=[];
+function record(){
+ const x=getData(); readings.push(x);
+ const tr=document.createElement("tr");
+ [readings.length,currentSourceName(x.l),x.l,x.d.toFixed(2),x.D.toFixed(1),x.beta.toFixed(3)].forEach(v=>{
+  const td=document.createElement("td"); td.textContent=v; tr.appendChild(td);
+ });
+ $("rows").appendChild(tr);
+}
+function clearTable(){ readings=[]; $("rows").innerHTML=""; }
+
+function resetAll(){
+ wave.value=532; sel.value=2;
+ distance.value=0.5; screen.value=1; order.value=1;
+ clearTable(); update();
+}
+
+/* ---------- Animation loop for wavefronts ---------- */
+function loop(){ phase+=0.6; drawSetup(); requestAnimationFrame(loop); }
+
+window.addEventListener("resize",update);
+sel.value=2;
+update();
+loop();
+</script>
+</body>
+</html>
